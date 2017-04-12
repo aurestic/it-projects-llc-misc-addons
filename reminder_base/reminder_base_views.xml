@@ -36,8 +36,10 @@
             <p>In the main, this tool is used after installation or before uninstallation Reminder module</p>
             <group>
                 <field name="model" class="oe_inline"/>
-                <field name="events_count" />
+                <field name="events_count" attrs="{'invisible': [('action', '=', 'default')]}"/>
                 <field name="action" class="oe_inline" />
+                <field name="default_reminder_alarm_ids" attrs="{'invisible': [('action', '!=', 'default')]}"
+                    widget="many2many_tags"/>
             </group>
             <footer>
                 <div>

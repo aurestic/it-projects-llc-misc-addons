@@ -178,8 +178,12 @@ class ReminderAdminWizard(models.TransientModel):
 
     model = fields.Selection(string='Model', selection='_get_model_list', required=True)
     events_count = fields.Integer(string='Count of calendar records', compute='_compute_events_count')
-    action = fields.Selection(string='Action', selection=[('create', 'Create Calendar Records'), ('delete', 'Delete Calendar Records')],
-                              required=True, default='create',)
+    action = fields.Selection(string='Action', selection=[
+        ('create', 'Create Calendar Records'),
+        ('delete', 'Delete Calendar Records'),
+        ('default', 'Set Default Reminders'),
+    ], required=True, default='create',)
+    default_reminder_alarm_ids = fields.Many2many(comodel_name='calendar.alarm', string='Default Reminders')
 
     def _get_model_list(self):
         res = []
@@ -200,6 +204,14 @@ class ReminderAdminWizard(models.TransientModel):
             r.events_count = count
 
     @api.multi
+    @api.onchange('model')
+    def _onchange_model(self):
+        self.ensure_one()
+        IrValues = self.env['ir.values']
+        self.default_reminder_alarm_ids = IrValues.get_default(
+            self.model, 'reminder_alarm_ids')
+
+    @api.multi
     def action_execute(self):
         for r in self:
             r.action_execute_one()
@@ -212,3 +224,7 @@ class ReminderAdminWizard(models.TransientModel):
             self.env['calendar.event'].search([('reminder_res_model', '=', self.model)]).unlink()
         elif self.action == 'create':
             self.env[self.model]._init_reminder()
+        elif self.action == 'default':
+            IrValues = self.env['ir.values']
+            value = self.default_reminder_alarm_ids.mapped(lambda r: (4, r.id))
+            IrValues.set_default(self.model, 'reminder_alarm_ids', value)
